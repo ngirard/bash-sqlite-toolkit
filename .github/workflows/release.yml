@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Build deb package
+      run: |
+        mkdir -p bash-sqlite-toolkit_${{ github.ref_name }}_all/usr/local/lib
+        cp sqlite_toolkit.sh bash-sqlite-toolkit_${{ github.ref_name }}_all/usr/local/lib/
+        mkdir -p bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN
+        echo "Package: bash-sqlite-toolkit" > bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN/control
+        echo "Version: ${{ github.ref_name }}" >> bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN/control
+        echo "Architecture: all" >> bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN/control
+        echo "Maintainer: Your Name <your@email.com>" >> bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN/control
+        echo "Description: Bash SQLite Toolkit" >> bash-sqlite-toolkit_${{ github.ref_name }}_all/DEBIAN/control
+        dpkg-deb --build bash-sqlite-toolkit_${{ github.ref_name }}_all
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload deb package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./bash-sqlite-toolkit_${{ github.ref_name }}_all.deb
+        asset_name: bash-sqlite-toolkit_${{ github.ref_name }}_all.deb
+        asset_content_type: application/vnd.debian.binary-package
+
