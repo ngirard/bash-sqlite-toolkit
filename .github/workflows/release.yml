@@ -47,7 +47,7 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.deb-package.outputs.package }}
-          asset_name: obsidian-shell-lib_${{ github.run_number }}_amd64.deb
+          asset_name: sqlite-shell-lib_${{ github.run_number }}_amd64.deb
           asset_content_type: application/vnd.debian.binary-package
 
       - name: Upload RPM Package to Release
@@ -57,5 +57,5 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.rpm-package.outputs.package }}
-          asset_name: obsidian-shell-lib_${{ github.run_number }}_amd64.rpm
+          asset_name: sqlite-shell-lib_${{ github.run_number }}_amd64.rpm
           asset_content_type: application/x-rpm
