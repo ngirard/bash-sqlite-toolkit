@@ -10,7 +10,7 @@
 # Logs messages with various severity levels to either the console or syslog, depending on configuration.
 function log {
     local date_format="${BASHLOG_DATE_FORMAT:-+%F %T}"
-    local date_s=$(date "+%s")
+    local date_s
     local level="$1"
     local upper_level="${level^^}"
     local debug_level="${DEBUG:-0}"
@@ -18,6 +18,7 @@ function log {
     local severity
 
     shift
+    date_s=$(date "+%s")
     message=$(printf "%s" "$@")
 
     # Severity levels
@@ -94,7 +95,6 @@ declare -A SQLITE_CONNECTIONS_WRITE_FD  # Stores write file descriptors per conn
 declare -A SQLITE_CONNECTIONS_PID       # Stores PIDs per connection
 declare -A SQLITE_RECORD_SEPARATORS     # Stores record separators per connection
 declare SQLITE_GLOBAL_RECORD_SEPARATOR=$'\t'  # Default global record separator
-declare -i SQLITE_CONNECTION_COUNTER=0  # Counter for unique connection IDs
 declare SQLITE_ERROR_CALLBACK=""        # User-defined error handling callback
 
 # Trap to ensure connections are closed upon script exit
@@ -150,7 +150,6 @@ function sqlite_set_global_record_separator {
 function sqlite_open_connection {
     local database=""
     local record_separator=""
-    local connection_id=""
     local read_fd=""
     local write_fd=""
     local pid=""
@@ -177,11 +176,10 @@ function sqlite_open_connection {
     fi
 
     # Generate unique connection ID
-    ((SQLITE_CONNECTION_COUNTER++))
-    connection_id="conn_${SQLITE_CONNECTION_COUNTER}_$$"
+    printf -v connection_id 'conn_%d_%d' "$$" "$RANDOM"
 
     # Start sqlite3 as a coprocess
-    coproc sqlite_coproc {
+    coproc sqlite3_coproc {
         sqlite3 "$database" 2>&1
     }
 
@@ -189,9 +187,15 @@ function sqlite_open_connection {
         fatal "Failed to start sqlite3 coprocess"
     fi
 
-    # Store coprocess file descriptors and PID
-    read_fd=${sqlite_coproc[0]}
-    write_fd=${sqlite_coproc[1]}
+    # Duplicate the coprocess file descriptors to new file descriptors
+    exec {write_fd}>&"${sqlite3_coproc[1]}"
+    exec {read_fd}<&"${sqlite3_coproc[0]}"
+
+    # Close the original coprocess file descriptors
+    exec {sqlite3_coproc[1]}>&-
+    exec {sqlite3_coproc[0]}<&-
+
+    # Get the coprocess PID
     pid=$!
 
     # Store connection details
@@ -199,6 +203,10 @@ function sqlite_open_connection {
     SQLITE_CONNECTIONS_WRITE_FD["$connection_id"]=$write_fd
     SQLITE_CONNECTIONS_PID["$connection_id"]=$pid
     SQLITE_RECORD_SEPARATORS["$connection_id"]="${record_separator:-$SQLITE_GLOBAL_RECORD_SEPARATOR}"
+
+    # Set the last connection ID in a global variable
+    # shellcheck disable=SC2034
+    SQLITE_LAST_CONNECTION_ID="$connection_id"
 
     log "info" "Opened SQLite connection: $connection_id (Database: $database)"
 
