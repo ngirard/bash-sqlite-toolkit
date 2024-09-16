@@ -17,7 +17,7 @@ version_schema: semver
 # Contents to add to the package
 contents:
   - src: src/sqlite-shell-lib.sh
-    dst: /usr/local/lib/sqlite-shell-lib.sh
+    dst: /usr/local/bin/sqlite-shell-lib.sh
 
 # Umask to be used on files without explicit mode set.
 umask: 0o002
