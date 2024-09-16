@@ -14,10 +14,6 @@ disable_globbing: false
 version: ${VERSION}
 version_schema: semver
 
-# Dependencies.
-depends:
-  - sqlite3
-
 # Contents to add to the package
 contents:
   - src: src/sqlite-shell-lib.sh
@@ -26,6 +22,14 @@ contents:
 # Umask to be used on files without explicit mode set.
 umask: 0o002
 
-# Custom configuration applied only to the Deb packager.
-deb:
-  compression: gzip
+overrides:
+  archlinux:
+    depends:
+      - sqlite
+  deb:
+    depends:
+      - sqlite3
+    #compression: gzip
+  rpm:
+    depends:
+      - sqlite3

@@ -17,21 +17,29 @@ jobs:
         id: extract_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Create DEB Package
+      - name: Create DEB package
         uses: burningalchemist/nfpm-action@v1
         id: deb-package
         with:
-          nfpm_version: "2.35.1"
-          config: "nfpm.yaml"  # Replace with your nfpm configuration file
+          nfpm_version: "2.40.0"
+          config: "nfpm.yaml"
           packager: "deb"
 
-      - name: Create RPM Package
+      - name: Create RPM package
         uses: burningalchemist/nfpm-action@v1
         id: rpm-package
         with:
-          nfpm_version: "2.35.1"
-          config: "nfpm.yaml"  # Replace with your nfpm configuration file
+          nfpm_version: "2.40.0"
+          config: "nfpm.yaml"
           packager: "rpm"
+
+      - name: Create RPM package
+        uses: burningalchemist/nfpm-action@v1
+        id: archlinux-package
+        with:
+          nfpm_version: "2.40.0"
+          config: "nfpm.yaml"
+          packager: "archlinux"
 
       - name: Create Release
         id: create_release
@@ -44,7 +52,7 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Upload DEB Package to Release
+      - name: Upload DEB package to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -54,7 +62,7 @@ jobs:
           asset_name: sqlite-shell-lib_${{ env.VERSION }}_amd64.deb
           asset_content_type: application/vnd.debian.binary-package
 
-      - name: Upload RPM Package to Release
+      - name: Upload RPM package to release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,3 +71,13 @@ jobs:
           asset_path: ${{ steps.rpm-package.outputs.package }}
           asset_name: sqlite-shell-lib_${{ env.VERSION }}_amd64.rpm
           asset_content_type: application/x-rpm
+
+      - name: Upload Archlinux package to release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.archlinux-package.outputs.package }}
+          asset_name: sqlite-shell-lib_${{ env.VERSION }}_amd64.pkg.tar.zst
+          asset_content_type: application/zstd
