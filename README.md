@@ -1,6 +1,6 @@
 # sqlite-shell-lib
 
-A Bash library for interacting with SQLite databases using named pipes, allowing for efficient and concurrent database operations within shell scripts.
+A Bash library for interacting with SQLite databases using coprocesses, allowing for efficient and concurrent database operations within shell scripts.
 
 ## Table of Contents
 
@@ -8,12 +8,12 @@ A Bash library for interacting with SQLite databases using named pipes, allowing
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
-  - [Opening a Connection](#opening-a-connection)
-  - [Executing Queries](#executing-queries)
-  - [Registering an Error Callback](#registering-an-error-callback)
-  - [Setting Record Separators](#setting-record-separators)
-  - [Listing Active Connections](#listing-active-connections)
-  - [Closing a Connection](#closing-a-connection)
+  - [Opening a connection](#opening-a-connection)
+  - [Executing queries](#executing-queries)
+  - [Registering an error callback](#registering-an-error-callback)
+  - [Setting record separators](#setting-record-separators)
+  - [Listing active connections](#listing-active-connections)
+  - [Closing a connection](#closing-a-connection)
 - [Examples](#examples)
 - [Testing](#testing)
 - [Contributing](#contributing)
@@ -52,7 +52,7 @@ source "/path/to/sqlite-shell-lib/sqlite-shell-lib.sh"
 
 ## Usage
 
-### Opening a Connection
+### Opening a connection
 
 ```bash
 connection_id=$(sqlite_open_connection --database "/path/to/database.db" [--record-separator ","])
@@ -61,7 +61,7 @@ connection_id=$(sqlite_open_connection --database "/path/to/database.db" [--reco
 - `--database`: Path to the SQLite database file.
 - `--record-separator`: (Optional) Record separator for query results (default is tab `\t`).
 
-### Executing Queries
+### Executing queries
 
 ```bash
 sqlite_query --connection-id "$connection_id" --query "SQL_STATEMENT" [--callback callback_function]
@@ -71,7 +71,7 @@ sqlite_query --connection-id "$connection_id" --query "SQL_STATEMENT" [--callbac
 - `--query`: The SQL query to execute.
 - `--callback`: (Optional) A function to process each row of the result.
 
-### Registering an Error Callback
+### Registering an error callback
 
 ```bash
 sqlite_register_error_callback --callback error_handler_function
@@ -79,7 +79,7 @@ sqlite_register_error_callback --callback error_handler_function
 
 - `--callback`: The name of your error handling function.
 
-### Setting Record Separators
+### Setting record separators
 
 - **Global Record Separator**
 
@@ -91,13 +91,13 @@ sqlite_register_error_callback --callback error_handler_function
 
   Specify `--record-separator` when opening a connection.
 
-### Listing Active Connections
+### Listing active connections
 
 ```bash
 sqlite_list_connections
 ```
 
-### Closing a Connection
+### Closing a connection
 
 ```bash
 sqlite_close_connection --connection-id "$connection_id"
@@ -112,7 +112,8 @@ sqlite_close_connection --connection-id "$connection_id"
 source "/path/to/sqlite-shell-lib/sqlite-shell-lib.sh"
 
 # Open a connection
-conn_id=$(sqlite_open_connection --database "/tmp/test.db")
+sqlite_open_connection --database "/tmp/test.db"
+conn_id="$SQLITE_LAST_CONNECTION_ID"
 
 # Create a table
 sqlite_query --connection-id "$conn_id" --query "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT);"
