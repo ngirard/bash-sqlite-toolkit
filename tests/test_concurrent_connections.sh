@@ -6,11 +6,6 @@ source "$(which sqlite-shell-lib.sh)"
 
 set -e
 
-function fatal {
-    echo "Fatal: $*" >&2
-    exit 1
-}
-
 function error_handler {
     local error_message="$1"
     local error_code="$2"

@@ -6,11 +6,6 @@ source "$(which sqlite-shell-lib.sh)"
 
 set -e
 
-function fatal {
-    echo "Fatal: $*" >&2
-    exit 1
-}
-
 function assertEquals {
     local expected="$1"
     local actual="$2"
@@ -26,7 +21,7 @@ function error_handler {
     fatal "Error Handler Invoked: $error_message (Code: $error_code)"
 }
 
-echo "Testing transaction management..."
+log "info" "Testing transaction management..."
 
 # Register error handler
 sqlite_register_error_callback --callback error_handler
@@ -85,4 +80,4 @@ assertEquals "2" "${#results[@]}" "Transaction commit failed"
 # Close connection
 sqlite_close_connection --connection-id "$conn_id"
 
-echo "Transaction management test passed."
+log "info" "Transaction management test passed."

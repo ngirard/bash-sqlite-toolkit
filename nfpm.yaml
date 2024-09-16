@@ -1,0 +1,31 @@
+name: sqlite-shell-lib
+arch: amd64
+platform: linux
+section: default
+priority: extra
+maintainer:  Nicolas Girard <girard.nicolas@gmail.com>
+description: "A Bash library for interacting with SQLite databases using coprocesses, allowing for efficient and concurrent database operations within shell scripts."
+vendor: "Nicolas Girard"
+homepage: "https://github.com/ngirard/sqlite-shell-lib"
+license: MIT
+disable_globbing: false
+
+# Version
+version: ${VERSION}
+version_schema: semver
+
+# Dependencies.
+depends:
+  - sqlite3
+
+# Contents to add to the package
+contents:
+  - src: src/sqlite-shell-lib.sh
+    dst: /usr/local/lib/sqlite-shell-lib.sh
+
+# Umask to be used on files without explicit mode set.
+umask: 0o002
+
+# Custom configuration applied only to the Deb packager.
+deb:
+  compression: gzip

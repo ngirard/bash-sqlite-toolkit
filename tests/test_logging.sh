@@ -4,7 +4,7 @@
 
 source "$(which sqlite-shell-lib.sh)"
 
-echo "Testing logging..."
+log "info" "Testing logging..."
 
 export DEBUG=1  # Enable debug level logging
 
@@ -22,5 +22,5 @@ sqlite_query --connection-id "$conn_id" --query "INVALID SQL;"
 # Close the connection (should log info)
 sqlite_close_connection --connection-id "$conn_id"
 
-echo "Logging test passed."
+log "info" "Logging test passed."
 exit 0

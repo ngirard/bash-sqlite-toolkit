@@ -4,7 +4,7 @@
 
 source "$(which sqlite-shell-lib.sh)"
 
-echo "Testing data-returning queries..."
+log "info" "Testing data-returning queries..."
 
 # Open a connection
 #conn_id=$(sqlite_open_connection --database "/tmp/test.db")
@@ -19,7 +19,7 @@ sqlite_query --connection-id "$conn_id" --query "INSERT INTO test (value) VALUES
 # shellcheck disable=SC2317
 function process_row {
     local columns=("$@")
-    echo "Row: ID=${columns[0]}, Value=${columns[1]}"
+    log "info" "Row: ID=${columns[0]}, Value=${columns[1]}"
 }
 
 # Query data
@@ -28,5 +28,5 @@ sqlite_query --connection-id "$conn_id" --query "SELECT * FROM test;" --callback
 # Clean up
 sqlite_close_connection --connection-id "$conn_id"
 
-echo "Data-returning queries test passed."
+log "info" "Data-returning queries test passed."
 exit 0

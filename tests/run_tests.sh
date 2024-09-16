@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 
-# Run all test scripts
-echo "Running all tests..."
+# For logging
+source "$(which sqlite-shell-lib.sh)"
 
-for test_script in test_*.sh; do
-    echo "Executing $test_script..."
+# Run all test scripts
+log "info" "Running all tests..."
+
+for test_script in tests/test_*.sh; do
+    log "info" "Executing $test_script..."
     bash "$test_script"
     if [[ $? -eq 0 ]]; then
-        echo "$test_script passed."
+        log "info" "$test_script passed."
     else
-        echo "$test_script failed."
+        log "error" "$test_script failed."
         exit 1
     fi
 done
 
-echo "All tests passed."
+log "info" "All tests passed."

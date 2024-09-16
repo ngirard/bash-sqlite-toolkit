@@ -6,11 +6,6 @@ source "$(which sqlite-shell-lib.sh)"
 
 set -e
 
-function fatal {
-    echo "Fatal: $*" >&2
-    exit 1
-}
-
 function assertEquals {
     local expected="$1"
     local actual="$2"
@@ -26,7 +21,7 @@ function error_handler {
     fatal "Error Handler Invoked: $error_message (Code: $error_code)"
 }
 
-echo "Testing record separators..."
+log "info" "Testing record separators..."
 
 # Register error handler
 sqlite_register_error_callback --callback error_handler
@@ -87,4 +82,4 @@ done
 sqlite_close_connection --connection-id "$conn_id_global"
 sqlite_close_connection --connection-id "$conn_id_specific"
 
-echo "Record separator test passed."
+log "info" "Record separator test passed."

@@ -2,14 +2,15 @@
 set shell := ["bash", "-c"]
 
 # Default recipe
-default: test
+_default:
+    @just --list --unsorted
 
-# Recipe to run all tests
+# Run all tests
 test:
     @echo "Running all tests..."
-    @cd tests; ./run_tests.sh
+    @env PATH=./src:$PATH ./tests/run_tests.sh
 
-# Recipe to clean up temporary files and databases
+# Clean up temporary files and databases
 clean:
     @echo "Cleaning up temporary files..."
     @rm -f /tmp/test*.db
@@ -19,28 +20,34 @@ clean:
     @find . -name "*.log" -type f -delete
     @echo "Cleanup complete."
 
-# Recipe to run a specific test
-test-one test-one name:
-    @echo "Running test: {{name}}"
-    @bash tests/{{name}}
+# Run a specific test
+test-one name:
+    #!/usr/bin/env bash
+    test_file="./tests/test_{{name}}.sh"
+    if [[ -x "${test_file}" ]]; then
+        echo "Running test: ${test_file}"
+        env PATH=./src:$PATH "${test_file}"
+    else
+        echo "Not executable: ${test_file}"
+    fi
 
-# Recipe to install dependencies (if any)
+# Install dependencies (if any)
 install-deps:
     @echo "Installing dependencies..."
     # Add commands to install any required dependencies
     @echo "Dependencies installed."
 
-# Recipe to format code (if needed)
+# Format code (if needed)
 format:
     @echo "Formatting code..."
     # Add commands to format code (e.g., shfmt)
     @echo "Code formatted."
 
-# Recipe to check code style (if needed)
+# Check code style (if needed)
 lint:
     @echo "Linting code..."
     # Add commands to lint code (e.g., shellcheck)
-    @shellcheck sqlite-shell-lib.sh tests/*.sh
+    @shellcheck src/sqlite-shell-lib.sh tests/*.sh
     @echo "Linting complete."
 
 # Recipe to show help

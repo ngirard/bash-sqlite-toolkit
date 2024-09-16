@@ -456,7 +456,7 @@ function sqlite_cleanup_all_connections {
     for connection_id in "${!SQLITE_CONNECTIONS_PID[@]}"; do
         sqlite_close_connection --connection-id "$connection_id"
     done
-    log "info" "Cleaned up all SQLite connections."
+    log "debug" "Cleaned up all SQLite connections."
 }
 
 # Lists all active connections.
