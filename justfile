@@ -54,9 +54,9 @@ release:
     @ci/release.sh
 
 # Generate a directory snapshot for the project
-
-# Alias for help
-#.PHONY: help
-
-# Ensure recipes are always executed
-#.PHONY: test clean test-one install-deps format lint
+snapshot:
+    #!/usr/bin/env bash
+    project_name="$(basename "${PWD%.git}")"
+    snapshot_filename="notes/${project_name}_repo_snapshot.md"
+    dir2prompt > "${snapshot_filename}"
+    wc -c "${snapshot_filename}"
