@@ -50,10 +50,10 @@ lint:
     @shellcheck src/sqlite-shell-lib.sh tests/*.sh
     @echo "Linting complete."
 
-# Recipe to show help
-help:
-    @echo "Available recipes:"
-    @just --list
+release:
+    @ci/release.sh
+
+# Generate a directory snapshot for the project
 
 # Alias for help
 #.PHONY: help
