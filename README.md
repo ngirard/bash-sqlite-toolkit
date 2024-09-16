@@ -47,7 +47,7 @@ cd sqlite-shell-lib
 In your Bash script:
 
 ```bash
-source "/path/to/sqlite-shell-lib/sqlite-shell-lib.sh"
+source "$(which sqlite-shell-lib.sh)"
 ```
 
 ## Usage
@@ -108,8 +108,8 @@ sqlite_close_connection --connection-id "$connection_id"
 ### Simple Query Execution
 
 ```bash
-#!/bin/bash
-source "/path/to/sqlite-shell-lib/sqlite-shell-lib.sh"
+#!/usr/bin/env bash
+source "$(which sqlite-shell-lib.sh)"
 
 # Open a connection
 sqlite_open_connection --database "/tmp/test.db"
@@ -134,17 +134,112 @@ sqlite_query --connection-id "$conn_id" --query "SELECT * FROM users;" --callbac
 sqlite_close_connection --connection-id "$conn_id"
 ```
 
-### Using an Error Callback
+### Transaction Management
 
 ```bash
+#!/usr/bin/env bash
+source "$(which sqlite-shell-lib.sh)"
+
+# Open a connection
+sqlite_open_connection --database "/tmp/test.db"
+conn_id="$SQLITE_LAST_CONNECTION_ID"
+
+# Start a transaction
+sqlite_begin_transaction --connection-id "$conn_id"
+
+# Insert data
+sqlite_query --connection-id "$conn_id" --query "INSERT INTO users (name) VALUES ('Charlie');"
+
+# Rollback the transaction (data won't be saved)
+sqlite_rollback_transaction --connection-id "$conn_id"
+
+# Start another transaction
+sqlite_begin_transaction --connection-id "$conn_id"
+
+# Insert data again
+sqlite_query --connection-id "$conn_id" --query "INSERT INTO users (name) VALUES ('David');"
+
+# Commit the transaction (data will be saved)
+sqlite_commit_transaction --connection-id "$conn_id"
+
+# Query the data to verify
+sqlite_query --connection-id "$conn_id" --query "SELECT * FROM users;" --callback process_row
+
+# Close the connection
+sqlite_close_connection --connection-id "$conn_id"
+```
+
+### Concurrent Connections
+
+```bash
+#!/usr/bin/env bash
+source "$(which sqlite-shell-lib.sh)"
+
+# Open two concurrent connections
+sqlite_open_connection --database "/tmp/db1.db"
+conn_id1="$SQLITE_LAST_CONNECTION_ID"
+
+sqlite_open_connection --database "/tmp/db2.db"
+conn_id2="$SQLITE_LAST_CONNECTION_ID"
+
+# Insert data concurrently
+sqlite_query --connection-id "$conn_id1" --query "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT);"
+sqlite_query --connection-id "$conn_id2" --query "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT);"
+
+sqlite_query --connection-id "$conn_id1" --query "INSERT INTO test (value) VALUES ('DB1-Value1');"
+sqlite_query --connection-id "$conn_id2" --query "INSERT INTO test (value) VALUES ('DB2-Value1');"
+
+# Query the data concurrently
+sqlite_query --connection-id "$conn_id1" --query "SELECT * FROM test;" --callback process_row
+sqlite_query --connection-id "$conn_id2" --query "SELECT * FROM test;" --callback process_row
+
+# Close both connections
+sqlite_close_connection --connection-id "$conn_id1"
+sqlite_close_connection --connection-id "$conn_id2"
+```
+
+### Custom Record Separators
+
+```bash
+#!/usr/bin/env bash
+source "$(which sqlite-shell-lib.sh)"
+
+# Open a connection with a custom record separator
+sqlite_open_connection --database "/tmp/test.db" --record-separator ","
+conn_id="$SQLITE_LAST_CONNECTION_ID"
+
+# Query data using the custom separator
+sqlite_query --connection-id "$conn_id" --query "SELECT * FROM users;" --callback process_row
+
+# Close the connection
+sqlite_close_connection --connection-id "$conn_id"
+```
+
+### Error Handling in Queries
+
+```bash
+#!/usr/bin/env bash
+source "$(which sqlite-shell-lib.sh)"
+
+# Define an error callback
 function error_handler {
     local error_message="$1"
     local error_code="$2"
     echo "An error occurred: $error_message (Error Code: $error_code)"
-    # Handle the error (e.g., clean up resources, notify, etc.)
 }
 
+# Register the error callback
 sqlite_register_error_callback --callback error_handler
+
+# Open a connection
+sqlite_open_connection --database "/tmp/test.db"
+conn_id="$SQLITE_LAST_CONNECTION_ID"
+
+# Execute an invalid query to trigger the error callback
+sqlite_query --connection-id "$conn_id" --query "INVALID SQL STATEMENT;"
+
+# Close the connection
+sqlite_close_connection --connection-id "$conn_id"
 ```
 
 ## Testing
