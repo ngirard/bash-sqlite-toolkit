@@ -89,6 +89,11 @@ export -f log log_to_syslog log_to_console _log_exception fatal
 
 # --- End of Logging Functions ---
 
+# --- Bash Version Check ---
+if [[ "${BASH_VERSINFO:-0}" -lt 4 ]]; then
+    fatal "Error: Bash version 4 or higher is required." >&2
+fi
+
 # Global Variables
 declare -A SQLITE_CONNECTIONS_READ_FD   # Stores read file descriptors per connection
 declare -A SQLITE_CONNECTIONS_WRITE_FD  # Stores write file descriptors per connection
@@ -462,7 +467,7 @@ function sqlite_list_connections {
     done
 }
 
-# Export functions for unit testing
+# Export library functions
 export -f sqlite_register_error_callback
 export -f sqlite_set_global_record_separator
 export -f sqlite_set_read_timeout
