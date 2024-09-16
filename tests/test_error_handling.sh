@@ -2,7 +2,7 @@
 
 # Test error handling and callbacks
 
-source "../sqlite-shell-lib.sh"
+source "$(which sqlite-shell-lib.sh)"
 
 echo "Testing error handling..."
 

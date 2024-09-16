@@ -2,7 +2,7 @@
 
 # Test concurrent connections with concurrent queries
 
-source ../sqlite-shell-lib.sh
+source "$(which sqlite-shell-lib.sh)"
 
 set -e
 

@@ -2,7 +2,7 @@
 
 # Test transaction management functions
 
-source ../sqlite-shell-lib.sh
+source "$(which sqlite-shell-lib.sh)"
 
 set -e
 

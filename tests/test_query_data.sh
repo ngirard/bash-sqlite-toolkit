@@ -2,7 +2,7 @@
 
 # Test executing queries that return data
 
-source "../sqlite-shell-lib.sh"
+source "$(which sqlite-shell-lib.sh)"
 
 echo "Testing data-returning queries..."
 

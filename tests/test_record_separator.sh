@@ -2,7 +2,7 @@
 
 # Test record separators
 
-source ../sqlite-shell-lib.sh
+source "$(which sqlite-shell-lib.sh)"
 
 set -e
 

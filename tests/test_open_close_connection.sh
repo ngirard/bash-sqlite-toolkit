@@ -2,7 +2,7 @@
 
 # Test opening and closing connections
 
-source "../sqlite-shell-lib.sh"
+source "$(which sqlite-shell-lib.sh)"
 
 echo "Testing opening and closing connections..."
 

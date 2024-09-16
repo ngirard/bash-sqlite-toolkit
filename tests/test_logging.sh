@@ -2,7 +2,7 @@
 
 # Test logging output at different severity levels
 
-source "../sqlite-shell-lib.sh"
+source "$(which sqlite-shell-lib.sh)"
 
 echo "Testing logging..."
 
