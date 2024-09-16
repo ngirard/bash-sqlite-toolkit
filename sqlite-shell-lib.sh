@@ -96,6 +96,8 @@ declare -A SQLITE_CONNECTIONS_PID       # Stores PIDs per connection
 declare -A SQLITE_RECORD_SEPARATORS     # Stores record separators per connection
 declare SQLITE_GLOBAL_RECORD_SEPARATOR=$'\t'  # Default global record separator
 declare SQLITE_ERROR_CALLBACK=""        # User-defined error handling callback
+declare SQLITE_READ_TIMEOUT=5           # Timeout in seconds for reading from coprocess
+declare SQLITE_LAST_CONNECTION_ID=""    # Holds the last connection ID
 
 # Trap to ensure connections are closed upon script exit
 trap 'sqlite_cleanup_all_connections' EXIT
@@ -146,6 +148,30 @@ function sqlite_set_global_record_separator {
     log "info" "Global record separator set to: $separator"
 }
 
+# Sets the read timeout for SQLite queries.
+function sqlite_set_read_timeout {
+    local timeout=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --timeout)
+                timeout="$2"
+                shift 2
+                ;;
+            *)
+                fatal "Unknown argument: $1"
+                ;;
+        esac
+    done
+
+    if ! [[ "$timeout" =~ ^[0-9]+$ ]]; then
+        fatal "Invalid timeout value: $timeout"
+    fi
+
+    SQLITE_READ_TIMEOUT="$timeout"
+    log "info" "Read timeout set to: $timeout seconds"
+}
 # Opens a connection to a SQLite database.
 function sqlite_open_connection {
     local database=""
@@ -209,9 +235,6 @@ function sqlite_open_connection {
     SQLITE_LAST_CONNECTION_ID="$connection_id"
 
     log "info" "Opened SQLite connection: $connection_id (Database: $database)"
-
-    # Return the connection ID
-    echo "$connection_id"
 }
 
 # Closes a SQLite database connection.
@@ -312,9 +335,18 @@ function sqlite_query {
         fatal "Invalid connection ID: $connection_id"
     fi
 
+    # Determine mode and separator
+    local sqlite_mode
+    if [[ "$record_separator" == $'\t' ]]; then
+        sqlite_mode="tabs"
+    else
+        sqlite_mode="list"
+    fi
+
     # Send the SQL command to the sqlite3 process
     {
-        echo ".mode tabs"
+        echo ".mode $sqlite_mode"
+        echo ".separator '$record_separator'"
         echo "$sql;"
         echo "SELECT 'END-OF-QUERY';"
     } >&"${write_fd}"
@@ -322,17 +354,20 @@ function sqlite_query {
     # Read output until 'END-OF-QUERY' is encountered
     local line
     while true; do
-        if ! IFS= read -r -u "${read_fd}" line; then
-            # If read fails, assume the coprocess has terminated unexpectedly
+        if ! IFS= read -r -t "$SQLITE_READ_TIMEOUT" -u "${read_fd}" line; then
+            # If read fails or times out
             log "error" "Failed to read from SQLite process for connection $connection_id"
             error_occurred=1
+            if [[ -n "$SQLITE_ERROR_CALLBACK" ]]; then
+                "$SQLITE_ERROR_CALLBACK" "Read timeout or failure on connection $connection_id" 1
+            fi
             break
         fi
 
         if [[ "$line" == "END-OF-QUERY" ]]; then
             break
         elif [[ "$line" == "Error: "* ]]; then
-            log "error" "SQLite error: $line"
+            log "error" "SQLite error on connection $connection_id: $line"
             error_occurred=1
             if [[ -n "$SQLITE_ERROR_CALLBACK" ]]; then
                 "$SQLITE_ERROR_CALLBACK" "$line" 1
@@ -349,6 +384,66 @@ function sqlite_query {
     if [[ "$error_occurred" -ne 0 ]]; then
         return 1
     fi
+}
+
+# Begins a transaction on a given connection.
+function sqlite_begin_transaction {
+    local connection_id=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --connection-id)
+                connection_id="$2"
+                shift 2
+                ;;
+            *)
+                fatal "Unknown argument: $1"
+                ;;
+        esac
+    done
+
+    sqlite_query --connection-id "$connection_id" --query "BEGIN TRANSACTION;"
+}
+
+# Commits a transaction on a given connection.
+function sqlite_commit_transaction {
+    local connection_id=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --connection-id)
+                connection_id="$2"
+                shift 2
+                ;;
+            *)
+                fatal "Unknown argument: $1"
+                ;;
+        esac
+    done
+
+    sqlite_query --connection-id "$connection_id" --query "COMMIT;"
+}
+
+# Rolls back a transaction on a given connection.
+function sqlite_rollback_transaction {
+    local connection_id=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --connection-id)
+                connection_id="$2"
+                shift 2
+                ;;
+            *)
+                fatal "Unknown argument: $1"
+                ;;
+        esac
+    done
+
+    sqlite_query --connection-id "$connection_id" --query "ROLLBACK;"
 }
 
 # Cleans up all open connections (called on script exit).
@@ -370,9 +465,13 @@ function sqlite_list_connections {
 # Export functions for unit testing
 export -f sqlite_register_error_callback
 export -f sqlite_set_global_record_separator
+export -f sqlite_set_read_timeout
 export -f sqlite_open_connection
 export -f sqlite_close_connection
 export -f sqlite_query
+export -f sqlite_begin_transaction
+export -f sqlite_commit_transaction
+export -f sqlite_rollback_transaction
 export -f sqlite_cleanup_all_connections
 export -f sqlite_list_connections
 

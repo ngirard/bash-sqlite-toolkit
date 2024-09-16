@@ -1,48 +1,90 @@
 #!/bin/bash
 
-# Test setting and using different record separators
+# Test record separators
 
-source "../sqlite-shell-lib.sh"
+source ../sqlite-shell-lib.sh
+
+set -e
+
+function fatal {
+    echo "Fatal: $*" >&2
+    exit 1
+}
+
+function assertEquals {
+    local expected="$1"
+    local actual="$2"
+    local message="$3"
+    if [[ "$expected" != "$actual" ]]; then
+        fatal "$message: Expected '$expected', got '$actual'"
+    fi
+}
+
+function error_handler {
+    local error_message="$1"
+    local error_code="$2"
+    fatal "Error Handler Invoked: $error_message (Code: $error_code)"
+}
 
 echo "Testing record separators..."
 
-# Set global record separator
+# Register error handler
+sqlite_register_error_callback --callback error_handler
+
+# Set global record separator to comma
 sqlite_set_global_record_separator --separator ","
 
-# Open a connection without specifying a separator (should use global)
-#conn_id1=$(sqlite_open_connection --database "/tmp/test.db")
-sqlite_open_connection --database "/tmp/test.db"
-conn_id1="$SQLITE_LAST_CONNECTION_ID"
+# Create a test database
+test_db="/tmp/record_separator_test.db"
+rm -f "$test_db"
 
-# Open a connection with a specific separator
-#conn_id2=$(sqlite_open_connection --database "/tmp/test.db" --record-separator "|")
-sqlite_open_connection --database "/tmp/test.db" --record-separator "|"
-conn_id2="$SQLITE_LAST_CONNECTION_ID"
+# Open connection with global separator
+sqlite_open_connection --database "$test_db"
+conn_id_global="$SQLITE_LAST_CONNECTION_ID"
+
+# Open connection with specific separator (semicolon)
+sqlite_open_connection --database "$test_db" --record-separator ";"
+conn_id_specific="$SQLITE_LAST_CONNECTION_ID"
 
 # Create table and insert data
-sqlite_query --connection-id "$conn_id1" --query "CREATE TABLE IF NOT EXISTS test (id INTEGER, value TEXT);"
-sqlite_query --connection-id "$conn_id1" --query "INSERT INTO test (id, value) VALUES (1, 'One'), (2, 'Two');"
+sqlite_query --connection-id "$conn_id_global" --query "CREATE TABLE test (id INTEGER PRIMARY KEY, value TEXT);"
+sqlite_query --connection-id "$conn_id_global" --query "INSERT INTO test (value) VALUES ('One');"
+sqlite_query --connection-id "$conn_id_global" --query "INSERT INTO test (value) VALUES ('Two');"
 
-# Define callbacks to check separators
-# shellcheck disable=SC2317
-function check_separator_global {
-    IFS="," read -r id value <<< "$*"
-    echo "Global Separator - ID: $id, Value: $value"
+# Collect results with global separator
+declare -a results_global=()
+function collect_results_global {
+    results_global+=("$1,$2")
 }
 
-# shellcheck disable=SC2317
-function check_separator_specific {
-    IFS="|" read -r id value <<< "$*"
-    echo "Specific Separator - ID: $id, Value: $value"
+sqlite_query --connection-id "$conn_id_global" --query "SELECT id, value FROM test ORDER BY id;" --callback collect_results_global
+
+# Assert results with global separator
+assertEquals "2" "${#results_global[@]}" "Global separator test failed"
+
+expected_global=("1,One" "2,Two")
+for i in "${!expected_global[@]}"; do
+    assertEquals "${expected_global[$i]}" "${results_global[$i]}" "Global separator result mismatch at index $i"
+done
+
+# Collect results with specific separator
+declare -a results_specific=()
+function collect_results_specific {
+    results_specific+=("$1;$2")
 }
 
-# Query data
-sqlite_query --connection-id "$conn_id1" --query "SELECT * FROM test;" --callback check_separator_global
-sqlite_query --connection-id "$conn_id2" --query "SELECT * FROM test;" --callback check_separator_specific
+sqlite_query --connection-id "$conn_id_specific" --query "SELECT id, value FROM test ORDER BY id;" --callback collect_results_specific
 
-# Clean up
-sqlite_close_connection --connection-id "$conn_id1"
-sqlite_close_connection --connection-id "$conn_id2"
+# Assert results with specific separator
+assertEquals "2" "${#results_specific[@]}" "Specific separator test failed"
+
+expected_specific=("1;One" "2;Two")
+for i in "${!expected_specific[@]}"; do
+    assertEquals "${expected_specific[$i]}" "${results_specific[$i]}" "Specific separator result mismatch at index $i"
+done
+
+# Close connections
+sqlite_close_connection --connection-id "$conn_id_global"
+sqlite_close_connection --connection-id "$conn_id_specific"
 
 echo "Record separator test passed."
-exit 0
