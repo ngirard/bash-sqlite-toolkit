@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # sqlite-shell-lib.sh
 # Bash SQLite Library
